@@ -228,6 +228,10 @@ int PD_UFP_Log_c::status_log_readline(char * buffer, int maxlen)
     return n;
 }
 
+#ifndef SERIAL_TX_BUFFER_SIZE
+    #define SERIAL_TX_BUFFER_SIZE 64
+#endif
+
 void PD_UFP_Log_c::print_status(HardwareSerial & serial)
 {
     // Wait for enough tx buffer in serial port to avoid blocking
