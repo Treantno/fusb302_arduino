@@ -15,7 +15,7 @@
  
 #include <stdint.h>
 #include <string.h>
-
+#include <Wire.h>
 #include "PD_UFP.h"
 
 #define t_PD_POLLING            100
@@ -42,7 +42,7 @@ enum {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PD_UFP_c
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-PD_UFP_c::PD_UFP_c():
+PD_UFP_c::PD_UFP_c(uint8_t i2c_address, TwoWire * i2c_bus):
     ready_voltage(0),
     ready_current(0),
     PPS_voltage_next(0),
@@ -61,6 +61,8 @@ PD_UFP_c::PD_UFP_c():
 {
     memset(&FUSB302, 0, sizeof(FUSB302_dev_t));
     memset(&protocol, 0, sizeof(PD_protocol_t));
+    _i2c_bus = i2c_bus;
+    _i2c_address = i2c_address;
 }
 
 void PD_UFP_c::init(uint8_t int_pin, enum PD_power_option_t power_option)
@@ -73,10 +75,13 @@ void PD_UFP_c::init_PPS(uint8_t int_pin, uint16_t PPS_voltage, uint8_t PPS_curre
     this->int_pin = int_pin;
     // Initialize FUSB302
     pinMode(int_pin, INPUT_PULLUP); // Set FUSB302 int pin input ant pull up
-    FUSB302.i2c_address = 0x22;
+    //FUSB302.i2c_address = 0x22;
+    FUSB302.i2c_address = _i2c_address;
     FUSB302.i2c_read = FUSB302_i2c_read;
     FUSB302.i2c_write = FUSB302_i2c_write;
     FUSB302.delay_ms = FUSB302_delay_ms;
+    //FUSB302.i2c_bus = &Wire;
+    FUSB302.i2c_bus = _i2c_bus;
     if (FUSB302_init(&FUSB302) == FUSB302_SUCCESS && FUSB302_get_ID(&FUSB302, 0, 0) == FUSB302_SUCCESS) {
         status_initialized = 1;
     }
@@ -130,28 +135,28 @@ void PD_UFP_c::clock_prescale_set(uint8_t prescaler)
     }
 }
 
-FUSB302_ret_t PD_UFP_c::FUSB302_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count)
+FUSB302_ret_t PD_UFP_c::FUSB302_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count, TwoWire * i2c_bus)
 {
-    Wire.beginTransmission(dev_addr);
-    Wire.write(reg_addr);
-    Wire.endTransmission();
-    Wire.requestFrom(dev_addr, count);
-    while (Wire.available() && count > 0) {
-        *data++ = Wire.read();
+    i2c_bus->beginTransmission(dev_addr);
+    i2c_bus->write(reg_addr);
+    i2c_bus->endTransmission();
+    i2c_bus->requestFrom(dev_addr, count);
+    while (i2c_bus->available() && count > 0) {
+        *data++ = i2c_bus->read();
         count--;
     }
     return count == 0 ? FUSB302_SUCCESS : FUSB302_ERR_READ_DEVICE;
 }
 
-FUSB302_ret_t PD_UFP_c::FUSB302_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count)
+FUSB302_ret_t PD_UFP_c::FUSB302_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count, TwoWire * i2c_bus)
 {
-    Wire.beginTransmission(dev_addr);
-    Wire.write(reg_addr);
+    i2c_bus->beginTransmission(dev_addr);
+    i2c_bus->write(reg_addr);
     while (count > 0) {
-        Wire.write(*data++);
+        i2c_bus->write(*data++);
         count--;
     }
-    Wire.endTransmission();
+    i2c_bus->endTransmission();
     return FUSB302_SUCCESS;
 }
 

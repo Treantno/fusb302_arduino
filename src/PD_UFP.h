@@ -38,7 +38,7 @@ typedef uint8_t status_power_t;
 class PD_UFP_c
 {
     public:
-        PD_UFP_c();
+        PD_UFP_c(uint8_t address = 0x22, TwoWire * i2c_bus = &Wire);
         // Init
         void init(uint8_t int_pin, enum PD_power_option_t power_option = PD_POWER_OPTION_MAX_5V);
         void init_PPS(uint8_t int_pin, uint16_t PPS_voltage, uint8_t PPS_current, enum PD_power_option_t power_option = PD_POWER_OPTION_MAX_5V);
@@ -59,8 +59,10 @@ class PD_UFP_c
         static void clock_prescale_set(uint8_t prescaler);
 
     protected:
-        static FUSB302_ret_t FUSB302_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count);
-        static FUSB302_ret_t FUSB302_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count);
+        uint8_t _i2c_address;
+        TwoWire * _i2c_bus;
+        static FUSB302_ret_t FUSB302_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count, TwoWire * i2c_bus);
+        static FUSB302_ret_t FUSB302_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint8_t count, TwoWire * i2c_bus);
         static FUSB302_ret_t FUSB302_delay_ms(uint32_t t);
         void handle_protocol_event(PD_protocol_event_t events);
         void handle_FUSB302_event(FUSB302_event_t events);
